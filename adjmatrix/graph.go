@@ -25,7 +25,7 @@ const (
 )
 
 type Vertex struct {
-	data byte
+	data string
 }
 type Arc struct {
 	v, w *Vertex
@@ -44,15 +44,29 @@ var vertexErr = errors.New("vertext error")
 var edgeErr = errors.New("edge error")
 var graphTypeErr = errors.New("graph type error")
 
+// 创建 n*n nil矩阵
+func createMatrix(n int) [][]*Arc {
+	matrix := make([][]*Arc, n)
+	list := make([]*Arc, n)
+	for i := 0; i < n; i++ {
+		matrix[i] = list
+	}
+	return matrix
+}
+
 func NewGraph(typ GraphType) (*Graph, error) {
 	switch typ {
 	case DG, UDG, DN, UDN:
-		return &Graph{typ: typ}, nil
+		return &Graph{
+			typ:     typ,
+			matrix:  make([][]*Arc, 0),
+			vertics: make([]*Vertex, 0),
+		}, nil
 	default:
 		return nil, graphTypeErr
 	}
 }
-func NewVertex(data byte) *Vertex {
+func NewVertex(data string) *Vertex {
 	return &Vertex{data: data}
 }
 func NewArc(v, w *Vertex, info int) *Arc {
@@ -71,21 +85,30 @@ func (g *Graph) getArcNum() int {
 	return g.ne
 }
 
+// 返回顶点个数
+func (g *Graph) getVexNum() int {
+	return g.nv
+}
+
 func (g *Graph) print() {
 	for _, v := range g.vertics {
-		fmt.Print(v.data, ',')
+		fmt.Print(v.data + "	")
 	}
 	fmt.Println()
 	fmt.Println("-----")
 	for _, row := range g.matrix {
 		for _, v := range row {
 			data := 0
+
 			if v != nil {
-				data = 1
-			} else if g.typ == UDN || g.typ == DN {
-				data = v.info
+				if g.typ == UDN || g.typ == DN {
+					data = v.info
+				} else {
+					data = 1
+				}
 			}
-			fmt.Print(data, ',')
+			fmt.Print(data)
+			fmt.Print(" ")
 		}
 		fmt.Println()
 	}
@@ -133,11 +156,30 @@ func (g *Graph) NextAdjVex(v, w *Vertex) (*Vertex, bool) {
 func (g *Graph) InsertVex(v *Vertex) bool {
 	if index := g.LocateVex(v); index < 0 {
 		g.vertics = append(g.vertics, v)
-		g.nv++
+		// matrix 扩容
+		g.grow(1)
 		return true
 	}
 	// 已经存在了
 	return false
+}
+
+// 扩容
+func (g *Graph) grow(num int) bool {
+	if num <= 0 {
+		return false
+	}
+	newNum := len(g.matrix) + num
+	appendList := make([]*Arc, num)
+	for i := range g.matrix {
+		g.matrix[i] = append(g.matrix[i], appendList...)
+	}
+	nilList := make([]*Arc, newNum)
+	for j := 0; j < num; j++ {
+		g.matrix = append(g.matrix, nilList)
+	}
+	g.nv++
+	return true
 }
 
 // 删除v及相关的弧
@@ -146,21 +188,43 @@ func (g *Graph) DeleteVex(v *Vertex) bool {
 	if index < 0 {
 		return false
 	}
+	g.shrink(index)
+	return true
+}
+
+// 收缩i行i列
+func (g *Graph) shrink(index int) bool {
+	oldlen := len(g.matrix)
+	if oldlen == 0 {
+		return false
+	}
+	if oldlen == 1 {
+		g.matrix = make([][]*Arc, 0)
+		g.vertics = make([]*Vertex, 0)
+		g.ne = 0
+		g.nv = 0
+		return true
+	}
+
+	if index >= oldlen && index < 0 {
+		return false
+	}
 	var ne int
-	for i, row := range g.matrix {
-		for j := range row {
-			if i == index && g.matrix[i][j] != nil {
-				g.matrix[i][j] = nil
-				ne++
+	newMatrix := createMatrix(oldlen - 1)
+	for i := 0; i < oldlen; i++ {
+		for j := 0; j < oldlen; j++ {
+			if i == index || j == index {
+				if g.matrix[i][j] != nil {
+					ne++
+				}
+				continue
 			}
-			if j == index && g.matrix[i][j] != nil {
-				g.matrix[i][j] = nil
-				ne++
-			}
+			newMatrix[i][j] = g.matrix[i][j]
 		}
 	}
-	g.nv--
+	g.matrix = newMatrix
 	g.ne -= ne
+	g.nv--
 	return true
 }
 
@@ -172,10 +236,16 @@ func (g *Graph) InsertArc(arc *Arc) bool {
 	if iv < 0 || iw < 0 {
 		return false
 	}
-	g.matrix[iv][iw] = arc
+	if g.matrix[iv][iw] == nil { // 避免重复
+		g.matrix[iv][iw] = arc
+		g.ne++
+	}
 	if g.typ == UDG || g.typ == UDN {
 		newArc := NewArc(w, v, arc.info)
-		g.matrix[iw][iv] = newArc
+		if g.matrix[iw][iv] == nil { // 避免重复
+			g.matrix[iw][iv] = newArc
+			g.ne++
+		}
 	}
 
 	return true
@@ -189,9 +259,16 @@ func (g *Graph) DeleteArc(arc *Arc) bool {
 	if iv < 0 || iw < 0 {
 		return false
 	}
-	g.matrix[iv][iw] = nil
+	if g.matrix[iv][iw] != nil {
+		g.matrix[iv][iw] = nil
+		g.ne--
+	}
+
 	if g.typ == UDG || g.typ == UDN {
-		g.matrix[iw][iv] = nil
+		if g.matrix[iw][iv] != nil {
+			g.matrix[iw][iv] = nil
+			g.ne--
+		}
 	}
 
 	return true
@@ -200,13 +277,11 @@ func (g *Graph) DeleteArc(arc *Arc) bool {
 // 深度优先遍历
 func (g *Graph) DFSTraverse() {
 	visited := make([]int, len(g.vertics))
-	v := g.vertics[0]
-	dfs(visited, g, v)
-}
-
-// 广度优先遍历
-func (g *Graph) BFSTraverse() {
-
+	for i, v := range g.vertics {
+		if visited[i] == 0 {
+			dfs(visited, g, v)
+		}
+	}
 }
 func dfs(visited []int, g *Graph, v *Vertex) {
 	// visit
@@ -214,13 +289,40 @@ func dfs(visited []int, g *Graph, v *Vertex) {
 	visited[vi] = 1
 	fmt.Println(v.data)
 
-	// todo
-	for {
-		w, exist := g.FirstAdjVex(v)
-		if exist {
-			wi := g.LocateVex(w)
-			if visited[wi] == 0 {
-				dfs(visited, g, w)
+	w, exist := g.FirstAdjVex(v)
+	for exist {
+		wi := g.LocateVex(w)
+		if visited[wi] == 0 {
+			dfs(visited, g, w)
+		}
+		w, exist = g.NextAdjVex(v, w)
+	}
+}
+
+// 广度优先遍历
+func (g *Graph) BFSTraverse() {
+	visited := make([]int, len(g.vertics))
+	queue := make([]*Vertex, 0, len(g.vertics))
+	for i, v := range g.vertics {
+		if visited[i] != 0 {
+			// visit
+			fmt.Println(v.data)
+			visited[i] = 1
+			queue = append(queue, v)
+		}
+		for len(queue) > 0 {
+			item := queue[0]
+			queue = queue[1:]
+			w, exits := g.FirstAdjVex(item)
+			for exits {
+				wi := g.LocateVex(w)
+				if visited[wi] == 0 {
+					// visit
+					fmt.Println(v.data)
+					visited[wi] = 1
+					queue = append(queue, w)
+				}
+				w, exits = g.NextAdjVex(item, w)
 			}
 		}
 	}
