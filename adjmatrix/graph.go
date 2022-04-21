@@ -210,8 +210,10 @@ func (g *Graph) shrink(index int) bool {
 		return false
 	}
 	var ne int
-	newMatrix := createMatrix(oldlen - 1)
+	// 处理matrix
+	newMatrix := make([][]*Arc, 0)
 	for i := 0; i < oldlen; i++ {
+		newRow := make([]*Arc, 0)
 		for j := 0; j < oldlen; j++ {
 			if i == index || j == index {
 				if g.matrix[i][j] != nil {
@@ -219,10 +221,18 @@ func (g *Graph) shrink(index int) bool {
 				}
 				continue
 			}
-			newMatrix[i][j] = g.matrix[i][j]
+			newRow = append(newRow, g.matrix[i][j])
+		}
+		if len(newRow) > 0 {
+			newMatrix = append(newMatrix, newRow)
 		}
 	}
 	g.matrix = newMatrix
+	// 处理vertics
+	newVertics := make([]*Vertex, 0)
+	newVertics = append(newVertics, g.vertics[:index]...)
+	newVertics = append(newVertics, g.vertics[index+1:]...)
+	g.vertics = newVertics
 	g.ne -= ne
 	g.nv--
 	return true
