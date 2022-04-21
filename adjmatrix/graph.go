@@ -337,3 +337,47 @@ func (g *Graph) BFSTraverse(visit func(*Vertex)) {
 		}
 	}
 }
+
+// 孩子兄弟链表法表示树
+type CSNode struct {
+	v           *Vertex
+	firstChild  *CSNode // 第一个孩子节点
+	nextSibling *CSNode // 下一个兄弟节点
+}
+
+// 通过深度遍历+孩子兄弟链表法 生成森林
+func (g *Graph) DFSForest() []*CSNode {
+	visited := make([]int, len(g.vertics))
+
+	forest := make([]*CSNode, 0)
+
+	for i := 0; i < len(g.vertics); i++ {
+		if visited[i] == 0 {
+			head := &CSNode{}
+			forest = append(forest, head)
+			dfsTree(visited, g, g.vertics[i], head)
+		}
+	}
+	return forest
+}
+
+func dfsTree(visited []int, g *Graph, v *Vertex, node *CSNode) {
+	vi := g.LocateVex(v)
+	visited[vi] = 1
+	node.v = v
+	node.firstChild = &CSNode{}
+	node = node.firstChild
+	w, exist := g.FirstAdjVex(v)
+	first := true
+	for exist {
+		wi := g.LocateVex(w)
+		if visited[wi] == 0 {
+			visited[wi] = 1
+			node.nextSibling = &CSNode{}
+			node = node.nextSibling
+			dfsTree(visited, g, w, node)
+		}
+		w, exist = g.NextAdjVex(v, w)
+		first = false
+	}
+}
