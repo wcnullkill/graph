@@ -314,7 +314,7 @@ func (g *Graph) BFSTraverse(visit func(*Vertex)) {
 	visited := make([]int, len(g.vertics))
 	queue := make([]*Vertex, 0, len(g.vertics))
 	for i, v := range g.vertics {
-		if visited[i] != 0 {
+		if visited[i] == 0 {
 			// visit
 			visit(v)
 			visited[i] = 1

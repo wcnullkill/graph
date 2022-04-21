@@ -366,3 +366,55 @@ func TestDFSTraverse(t *testing.T) {
 		}
 	}
 }
+
+func TestBFSTraverse(t *testing.T) {
+	assert := assert.New(t)
+	data := []struct {
+		typ    GraphType
+		matrix [][]int
+		bfs    []string
+	}{
+		{
+			typ: UDG,
+			matrix: [][]int{
+				{0, 1, 1, 0, 0, 0, 0, 0},
+				{1, 0, 0, 1, 1, 0, 0, 0},
+				{1, 0, 0, 0, 0, 1, 1, 0},
+				{0, 1, 0, 0, 0, 0, 0, 1},
+				{0, 1, 0, 0, 0, 0, 0, 1},
+				{0, 0, 1, 0, 0, 0, 1, 0},
+				{0, 0, 1, 0, 0, 1, 0, 0},
+				{0, 0, 0, 1, 1, 0, 0, 0},
+			},
+			bfs: []string{"V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8"},
+		},
+		{
+			typ: UDN,
+			matrix: [][]int{
+				{0, 11, 12, 0, 0, 0, 0, 0},
+				{11, 0, 0, 13, 14, 0, 0, 0},
+				{12, 0, 0, 0, 0, 15, 16, 0},
+				{0, 1, 0, 0, 0, 0, 0, 17},
+				{0, 1, 0, 0, 0, 0, 0, 18},
+				{0, 0, 1, 0, 0, 0, 1, 0},
+				{0, 0, 1, 0, 0, 1, 0, 0},
+				{0, 0, 0, 1, 1, 0, 0, 0},
+			},
+			bfs: []string{"V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8"},
+		},
+	}
+	for _, v := range data {
+		g, _ := NewGraph(v.typ)
+		initGraph(g, v.typ, v.matrix)
+
+		bfs := []string{}
+		g.BFSTraverse(func(vex *Vertex) {
+			bfs = append(bfs, vex.data)
+		})
+
+		assert.Equal(len(bfs), len(v.bfs))
+		for i := range bfs {
+			assert.Equal(bfs[i], v.bfs[i])
+		}
+	}
+}
