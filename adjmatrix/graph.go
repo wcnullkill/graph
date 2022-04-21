@@ -285,38 +285,38 @@ func (g *Graph) DeleteArc(arc *Arc) bool {
 }
 
 // 深度优先遍历
-func (g *Graph) DFSTraverse() {
+func (g *Graph) DFSTraverse(visit func(*Vertex)) {
 	visited := make([]int, len(g.vertics))
 	for i, v := range g.vertics {
 		if visited[i] == 0 {
-			dfs(visited, g, v)
+			dfs(visited, g, v, visit)
 		}
 	}
 }
-func dfs(visited []int, g *Graph, v *Vertex) {
+func dfs(visited []int, g *Graph, v *Vertex, visit func(*Vertex)) {
 	// visit
 	vi := g.LocateVex(v)
 	visited[vi] = 1
-	fmt.Println(v.data)
+	visit(v)
 
 	w, exist := g.FirstAdjVex(v)
 	for exist {
 		wi := g.LocateVex(w)
 		if visited[wi] == 0 {
-			dfs(visited, g, w)
+			dfs(visited, g, w, visit)
 		}
 		w, exist = g.NextAdjVex(v, w)
 	}
 }
 
 // 广度优先遍历
-func (g *Graph) BFSTraverse() {
+func (g *Graph) BFSTraverse(visit func(*Vertex)) {
 	visited := make([]int, len(g.vertics))
 	queue := make([]*Vertex, 0, len(g.vertics))
 	for i, v := range g.vertics {
 		if visited[i] != 0 {
 			// visit
-			fmt.Println(v.data)
+			visit(v)
 			visited[i] = 1
 			queue = append(queue, v)
 		}
@@ -328,7 +328,7 @@ func (g *Graph) BFSTraverse() {
 				wi := g.LocateVex(w)
 				if visited[wi] == 0 {
 					// visit
-					fmt.Println(v.data)
+					visit(w)
 					visited[wi] = 1
 					queue = append(queue, w)
 				}
