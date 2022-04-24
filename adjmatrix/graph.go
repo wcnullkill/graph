@@ -124,32 +124,42 @@ func (g *Graph) LocateVex(v *Vertex) int {
 	return -1
 }
 
-// 返回v的第一个邻接点
-func (g *Graph) FirstAdjVex(v *Vertex) (*Vertex, bool) {
-	vi := g.LocateVex(v)
-	if vi < 0 {
+// 根据下标，返回vertex
+func (g *Graph) GetVex(index int) (*Vertex, bool) {
+	if index < 0 || index >= len(g.vertics) {
 		return nil, false
+	}
+	return g.vertics[index], true
+}
+
+// 返回v的第一个邻接点
+// 如果存在，返回index,true
+// 如果不存在，返回-1,false
+func (g *Graph) FirstAdjVex(vi int) (int, bool) {
+	if vi < 0 {
+		return -1, false
 	}
 	for i := 0; i < g.nv; i++ {
 		if g.matrix[vi][i] != nil {
-			return g.vertics[i], true
+			return i, true
 		}
 	}
-	return nil, false
+	return -1, false
 }
 
 // 返回v相对于w的下一个邻接点
-func (g *Graph) NextAdjVex(v, w *Vertex) (*Vertex, bool) {
-	vi, wi := g.LocateVex(v), g.LocateVex(w)
+// 如果存在，返回index,true
+// 如果不存在，返回-1,false
+func (g *Graph) NextAdjVex(vi, wi int) (int, bool) {
 	if vi < 0 || wi < 0 {
-		return nil, false
+		return -1, false
 	}
 	for i := wi + 1; i < g.nv; i++ {
 		if g.matrix[vi][i] != nil {
-			return g.vertics[i], true
+			return i, true
 		}
 	}
-	return nil, false
+	return -1, false
 }
 
 // 添加新的v
@@ -287,25 +297,24 @@ func (g *Graph) DeleteArc(arc *Arc) bool {
 // 深度优先遍历
 func (g *Graph) DFSTraverse(visit func(*Vertex)) {
 	visited := make([]int, len(g.vertics))
-	for i, v := range g.vertics {
+	for i := range g.vertics {
 		if visited[i] == 0 {
-			dfs(visited, g, v, visit)
+			dfs(visited, g, i, visit)
 		}
 	}
 }
-func dfs(visited []int, g *Graph, v *Vertex, visit func(*Vertex)) {
+func dfs(visited []int, g *Graph, vi int, visit func(*Vertex)) {
 	// visit
-	vi := g.LocateVex(v)
+	v, _ := g.GetVex(vi)
 	visited[vi] = 1
 	visit(v)
 
-	w, exist := g.FirstAdjVex(v)
+	wi, exist := g.FirstAdjVex(vi)
 	for exist {
-		wi := g.LocateVex(w)
 		if visited[wi] == 0 {
-			dfs(visited, g, w, visit)
+			dfs(visited, g, wi, visit)
 		}
-		w, exist = g.NextAdjVex(v, w)
+		wi, exist = g.NextAdjVex(vi, wi)
 	}
 }
 
@@ -323,16 +332,18 @@ func (g *Graph) BFSTraverse(visit func(*Vertex)) {
 		for len(queue) > 0 {
 			item := queue[0]
 			queue = queue[1:]
-			w, exits := g.FirstAdjVex(item)
+			itemIndex := g.LocateVex(item)
+			wi, exits := g.FirstAdjVex(itemIndex)
 			for exits {
-				wi := g.LocateVex(w)
+				w, _ := g.GetVex(wi)
 				if visited[wi] == 0 {
 					// visit
 					visit(w)
 					visited[wi] = 1
 					queue = append(queue, w)
 				}
-				w, exits = g.NextAdjVex(item, w)
+				itemIndex := g.LocateVex(item)
+				wi, exits = g.NextAdjVex(itemIndex, wi)
 			}
 		}
 	}
@@ -360,21 +371,19 @@ func (g *Graph) DFSForest() *CSNode {
 				q.nextSibling = p
 			}
 			q = p
-			dfsTree(visited, g, g.vertics[i], p)
+			dfsTree(visited, g, i, p)
 		}
 	}
 	return t
 }
 
 // 从v顶点开始，深度遍历，得到以t为根节点的树
-func dfsTree(visited []int, g *Graph, v *Vertex, t *CSNode) {
+func dfsTree(visited []int, g *Graph, vi int, t *CSNode) {
 	q := &CSNode{}
-	vi := g.LocateVex(v)
 	visited[vi] = 1
-	w, exist := g.FirstAdjVex(v)
+	wi, exist := g.FirstAdjVex(vi)
 	first := true
 	for exist {
-		wi := g.LocateVex(w)
 		if visited[wi] == 0 {
 			p := &CSNode{v: g.vertics[wi]}
 			if first {
@@ -384,8 +393,8 @@ func dfsTree(visited []int, g *Graph, v *Vertex, t *CSNode) {
 				q.nextSibling = p
 			}
 			q = p
-			dfsTree(visited, g, w, q)
+			dfsTree(visited, g, wi, q)
 		}
-		w, exist = g.NextAdjVex(v, w)
+		wi, exist = g.NextAdjVex(vi, wi)
 	}
 }
