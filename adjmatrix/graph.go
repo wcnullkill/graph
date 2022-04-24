@@ -345,39 +345,47 @@ type CSNode struct {
 	nextSibling *CSNode // 下一个兄弟节点
 }
 
-// 通过深度遍历+孩子兄弟链表法 生成森林
-func (g *Graph) DFSForest() []*CSNode {
+// 通过深度遍历+孩子兄弟链表法
+func (g *Graph) DFSForest() *CSNode {
+	q := &CSNode{}
 	visited := make([]int, len(g.vertics))
-
-	forest := make([]*CSNode, 0)
+	var t *CSNode
 
 	for i := 0; i < len(g.vertics); i++ {
 		if visited[i] == 0 {
-			head := &CSNode{}
-			forest = append(forest, head)
-			dfsTree(visited, g, g.vertics[i], head)
+			p := &CSNode{v: g.vertics[i]}
+			if t == nil {
+				t = p
+			} else {
+				q.nextSibling = p
+			}
+			q = p
+			dfsTree(visited, g, g.vertics[i], p)
 		}
 	}
-	return forest
+	return t
 }
 
-func dfsTree(visited []int, g *Graph, v *Vertex, node *CSNode) {
+// 从v顶点开始，深度遍历，得到以t为根节点的树
+func dfsTree(visited []int, g *Graph, v *Vertex, t *CSNode) {
+	q := &CSNode{}
 	vi := g.LocateVex(v)
 	visited[vi] = 1
-	node.v = v
-	node.firstChild = &CSNode{}
-	node = node.firstChild
 	w, exist := g.FirstAdjVex(v)
 	first := true
 	for exist {
 		wi := g.LocateVex(w)
 		if visited[wi] == 0 {
-			visited[wi] = 1
-			node.nextSibling = &CSNode{}
-			node = node.nextSibling
-			dfsTree(visited, g, w, node)
+			p := &CSNode{v: g.vertics[wi]}
+			if first {
+				t.firstChild = p
+				first = false
+			} else {
+				q.nextSibling = p
+			}
+			q = p
+			dfsTree(visited, g, w, q)
 		}
 		w, exist = g.NextAdjVex(v, w)
-		first = false
 	}
 }

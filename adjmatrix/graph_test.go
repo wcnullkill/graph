@@ -1,6 +1,7 @@
 package adjmatrix
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -417,4 +418,36 @@ func TestBFSTraverse(t *testing.T) {
 			assert.Equal(bfs[i], v.bfs[i])
 		}
 	}
+}
+
+func TestDFSForest(t *testing.T) {
+	// assert := assert.New(t)
+	type structur struct {
+		typ    GraphType
+		matrix [][]int
+	}
+	data := structur{
+		typ: UDG,
+		matrix: [][]int{
+			{0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0},
+			{0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0},
+			{0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+			{0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0},
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
+			{0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0},
+		},
+	}
+	g, _ := NewGraph(data.typ)
+	initGraph(g, data.typ, data.matrix)
+
+	node := g.DFSForest()
+	fmt.Println(node)
+
 }
